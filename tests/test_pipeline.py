@@ -22,6 +22,8 @@ def test_pipeline_runs_end_to_end() -> None:
     assert result.cleaned_data.shape == (3, 3)
     assert result.insights
     assert "# AutoAnalyst-MA Report" in result.report_markdown
+    assert "## Validation Summary" in result.report_markdown
+    assert result.validation_summary is not None
 
 
 def test_pipeline_includes_agent_trace() -> None:
@@ -41,6 +43,7 @@ def test_pipeline_includes_agent_trace() -> None:
         "DataCleaningAgent",
         "InsightGenerationAgent",
         "VisualizationAgent",
+        "ValidationExplainabilityAgent",
         "ReportGenerationAgent",
     ]
 
@@ -59,3 +62,6 @@ def test_pipeline_maps_business_goal_to_context() -> None:
     assert result.business_context is not None
     assert "churn_rate" in result.business_context.recommended_kpis
     assert "classification" in result.business_context.recommended_analyses
+    assert result.validation_summary is not None
+    assert result.validation_summary.confidence_level in {"high", "medium", "low"}
+    assert 0.10 <= result.validation_summary.confidence_score <= 0.99

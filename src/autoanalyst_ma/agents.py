@@ -5,7 +5,13 @@ from typing import Any, Protocol
 
 import pandas as pd
 
-from .models import AgentTraceEntry, AnalyticsResult, BusinessContext, DatasetProfile
+from .models import (
+    AgentTraceEntry,
+    AnalyticsResult,
+    BusinessContext,
+    DatasetProfile,
+    ValidationSummary,
+)
 
 
 class ProfileAgent(Protocol):
@@ -38,6 +44,17 @@ class InsightAgent(Protocol):
 
 class VisualizationAgent(Protocol):
     def build_chart_specs(self, cleaned_data: pd.DataFrame) -> dict[str, dict[str, Any]]:
+        ...
+
+
+class ValidationAgent(Protocol):
+    def validate(
+        self,
+        cleaned_data: pd.DataFrame,
+        profile: DatasetProfile,
+        insights: list[str],
+        business_context: BusinessContext,
+    ) -> ValidationSummary:
         ...
 
 
@@ -125,6 +142,65 @@ class DefaultVisualizationAgent:
 
 
 @dataclass(slots=True)
+class DefaultValidationAgent:
+    def validate(
+        self,
+        cleaned_data: pd.DataFrame,
+        profile: DatasetProfile,
+        insights: list[str],
+        business_context: BusinessContext,
+    ) -> ValidationSummary:
+        checks: list[str] = []
+        issues: list[str] = []
+        score = 0.85
+
+        total_cells = max(profile.row_count * profile.column_count, 1)
+        missing_ratio = profile.missing_values / total_cells
+        if missing_ratio > 0.10:
+            score -= 0.10
+            issues.append("High missing-value ratio in raw data may reduce confidence.")
+        checks.append(f"Missing-value ratio checked: {missing_ratio:.2%}")
+
+        if profile.row_count < 30:
+            score -= 0.15
+            issues.append("Small sample size detected; insights may be unstable.")
+        checks.append(f"Sample size checked: {profile.row_count} rows")
+
+        if not profile.numeric_columns:
+            score -= 0.10
+            issues.append("No numeric columns detected; statistical depth is limited.")
+        checks.append("Feature-type coverage checked")
+
+        objective_text = business_context.objective.lower()
+        insights_text = " ".join(insights).lower()
+        if "churn" in objective_text and "churn" not in insights_text:
+            score -= 0.10
+            issues.append("Objective mentions churn but generated insights do not reference churn directly.")
+        if "fraud" in objective_text and "fraud" not in insights_text and "anomal" not in insights_text:
+            score -= 0.10
+            issues.append("Objective mentions fraud but insights lack fraud or anomaly-specific language.")
+        if "sales" in objective_text and "revenue" not in insights_text and "sales" not in insights_text:
+            score -= 0.10
+            issues.append("Objective mentions sales but insights lack sales or revenue-specific language.")
+        checks.append("Objective alignment checked")
+
+        score = max(0.10, min(0.99, score))
+        if score >= 0.80:
+            level = "high"
+        elif score >= 0.60:
+            level = "medium"
+        else:
+            level = "low"
+
+        return ValidationSummary(
+            confidence_score=score,
+            confidence_level=level,
+            checks=checks,
+            issues=issues,
+        )
+
+
+@dataclass(slots=True)
 class DefaultReportAgent:
     pipeline: Any
 
@@ -144,6 +220,7 @@ class PipelineOrchestrator:
     business_understanding_agent: BusinessUnderstandingAgent
     insight_agent: InsightAgent
     visualization_agent: VisualizationAgent
+    validation_agent: ValidationAgent
     report_agent: ReportAgent
 
     def run(self, data_frame: pd.DataFrame, objective: str | None = None) -> AnalyticsResult:
@@ -169,7 +246,27 @@ class PipelineOrchestrator:
         charts = self.visualization_agent.build_chart_specs(cleaned_data)
         trace.append(AgentTraceEntry(agent="VisualizationAgent", action="prepared chart specs"))
 
+        validation_summary = self.validation_agent.validate(
+            cleaned_data,
+            profile,
+            insights,
+            business_context,
+        )
+        trace.append(
+            AgentTraceEntry(
+                agent="ValidationExplainabilityAgent",
+                action="computed confidence and consistency checks",
+            )
+        )
+
         report_markdown = self.report_agent.build_report(profile, insights, charts)
+        report_markdown += "\n\n## Validation Summary"
+        report_markdown += f"\n- Confidence score: {validation_summary.confidence_score:.2f}"
+        report_markdown += f"\n- Confidence level: {validation_summary.confidence_level}"
+        if validation_summary.issues:
+            report_markdown += "\n- Noted issues:"
+            for issue in validation_summary.issues:
+                report_markdown += f"\n  - {issue}"
         trace.append(AgentTraceEntry(agent="ReportGenerationAgent", action="built markdown report"))
 
         return AnalyticsResult(
@@ -180,4 +277,5 @@ class PipelineOrchestrator:
             report_markdown=report_markdown,
             agent_trace=trace,
             business_context=business_context,
+            validation_summary=validation_summary,
         )

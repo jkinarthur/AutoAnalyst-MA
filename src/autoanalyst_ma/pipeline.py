@@ -12,6 +12,7 @@ from .agents import (
     DefaultInsightAgent,
     DefaultProfileAgent,
     DefaultReportAgent,
+    DefaultValidationAgent,
     DefaultVisualizationAgent,
     PipelineOrchestrator,
 )
@@ -32,6 +33,7 @@ class AnalyticsPipeline:
             business_understanding_agent=DefaultBusinessUnderstandingAgent(),
             insight_agent=DefaultInsightAgent(self),
             visualization_agent=DefaultVisualizationAgent(self),
+            validation_agent=DefaultValidationAgent(),
             report_agent=DefaultReportAgent(self),
         )
 

@@ -115,5 +115,8 @@ def test_analyze_endpoint_returns_business_context(tmp_path: Path) -> None:
         business_context = payload["business_context"]
         assert business_context["objective"] == "Analyze churn risk"
         assert "churn_rate" in business_context["recommended_kpis"]
+        validation_summary = payload["validation_summary"]
+        assert validation_summary is not None
+        assert validation_summary["confidence_level"] in {"high", "medium", "low"}
     finally:
         api.run_store = original_store

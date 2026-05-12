@@ -52,6 +52,20 @@ else:
             for analysis_name in result.business_context.recommended_analyses:
                 st.write(f"- {analysis_name}")
 
+        if result.validation_summary is not None:
+            st.subheader("Validation summary")
+            st.write(
+                f"Confidence: {result.validation_summary.confidence_score:.2f} ({result.validation_summary.confidence_level})"
+            )
+            if result.validation_summary.checks:
+                st.write("Checks")
+                for check in result.validation_summary.checks:
+                    st.write(f"- {check}")
+            if result.validation_summary.issues:
+                st.write("Issues")
+                for issue in result.validation_summary.issues:
+                    st.write(f"- {issue}")
+
         st.subheader("Charts")
         chart_frames = build_chart_frames(result)
         if chart_frames:

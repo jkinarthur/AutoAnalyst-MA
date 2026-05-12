@@ -31,6 +31,14 @@ class BusinessContext:
 
 
 @dataclass(slots=True)
+class ValidationSummary:
+    confidence_score: float
+    confidence_level: str
+    checks: list[str] = field(default_factory=list)
+    issues: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class AnalyticsResult:
     profile: DatasetProfile
     cleaned_data: pd.DataFrame
@@ -39,3 +47,4 @@ class AnalyticsResult:
     report_markdown: str = ""
     agent_trace: list[AgentTraceEntry] = field(default_factory=list)
     business_context: BusinessContext | None = None
+    validation_summary: ValidationSummary | None = None

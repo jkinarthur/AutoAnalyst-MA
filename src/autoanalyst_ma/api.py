@@ -25,6 +25,15 @@ def _to_payload(result) -> dict:
             "recommended_analyses": result.business_context.recommended_analyses,
         }
 
+    validation_payload = None
+    if result.validation_summary is not None:
+        validation_payload = {
+            "confidence_score": result.validation_summary.confidence_score,
+            "confidence_level": result.validation_summary.confidence_level,
+            "checks": result.validation_summary.checks,
+            "issues": result.validation_summary.issues,
+        }
+
     return {
         "profile": {
             "row_count": result.profile.row_count,
@@ -42,6 +51,7 @@ def _to_payload(result) -> dict:
             for entry in result.agent_trace
         ],
         "business_context": business_context_payload,
+        "validation_summary": validation_payload,
         "preview": result.cleaned_data.head(5).to_dict(orient="records"),
     }
 
