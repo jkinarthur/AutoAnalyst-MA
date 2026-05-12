@@ -64,7 +64,7 @@ else:
             if result.validation_summary.issues:
                 st.write("Issues")
                 for issue in result.validation_summary.issues:
-                    st.write(f"- {issue}")
+                    st.write(f"- [{issue.category}/{issue.severity}] {issue.message}")
 
         st.subheader("Charts")
         chart_frames = build_chart_frames(result)

@@ -118,5 +118,11 @@ def test_analyze_endpoint_returns_business_context(tmp_path: Path) -> None:
         validation_summary = payload["validation_summary"]
         assert validation_summary is not None
         assert validation_summary["confidence_level"] in {"high", "medium", "low"}
+        assert isinstance(validation_summary["issues"], list)
+        if validation_summary["issues"]:
+            first_issue = validation_summary["issues"][0]
+            assert "category" in first_issue
+            assert "severity" in first_issue
+            assert "message" in first_issue
     finally:
         api.run_store = original_store

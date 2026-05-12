@@ -31,11 +31,19 @@ class BusinessContext:
 
 
 @dataclass(slots=True)
+class ValidationIssue:
+    category: str
+    severity: str
+    message: str
+
+
+@dataclass(slots=True)
 class ValidationSummary:
+
     confidence_score: float
     confidence_level: str
     checks: list[str] = field(default_factory=list)
-    issues: list[str] = field(default_factory=list)
+    issues: list[ValidationIssue] = field(default_factory=list)
 
 
 @dataclass(slots=True)

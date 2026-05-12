@@ -65,3 +65,19 @@ def test_pipeline_maps_business_goal_to_context() -> None:
     assert result.validation_summary is not None
     assert result.validation_summary.confidence_level in {"high", "medium", "low"}
     assert 0.10 <= result.validation_summary.confidence_score <= 0.99
+
+
+def test_validation_issues_include_categories() -> None:
+    data_frame = pd.DataFrame(
+        {
+            "status": ["active", "at_risk", "active"],
+            "segment": ["A", "B", "A"],
+        }
+    )
+
+    result = AnalyticsPipeline().run(data_frame, business_goal="Analyze churn risk")
+
+    assert result.validation_summary is not None
+    issue_categories = {issue.category for issue in result.validation_summary.issues}
+    assert "statistical_weakness" in issue_categories
+    assert "objective_mismatch" in issue_categories

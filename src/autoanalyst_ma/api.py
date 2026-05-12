@@ -31,7 +31,14 @@ def _to_payload(result) -> dict:
             "confidence_score": result.validation_summary.confidence_score,
             "confidence_level": result.validation_summary.confidence_level,
             "checks": result.validation_summary.checks,
-            "issues": result.validation_summary.issues,
+            "issues": [
+                {
+                    "category": issue.category,
+                    "severity": issue.severity,
+                    "message": issue.message,
+                }
+                for issue in result.validation_summary.issues
+            ],
         }
 
     return {

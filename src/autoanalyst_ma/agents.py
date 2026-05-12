@@ -10,6 +10,7 @@ from .models import (
     AnalyticsResult,
     BusinessContext,
     DatasetProfile,
+    ValidationIssue,
     ValidationSummary,
 )
 
@@ -151,37 +152,82 @@ class DefaultValidationAgent:
         business_context: BusinessContext,
     ) -> ValidationSummary:
         checks: list[str] = []
-        issues: list[str] = []
+        issues: list[ValidationIssue] = []
         score = 0.85
 
         total_cells = max(profile.row_count * profile.column_count, 1)
         missing_ratio = profile.missing_values / total_cells
         if missing_ratio > 0.10:
             score -= 0.10
-            issues.append("High missing-value ratio in raw data may reduce confidence.")
+            issues.append(
+                ValidationIssue(
+                    category="data_quality",
+                    severity="medium",
+                    message="High missing-value ratio in raw data may reduce confidence.",
+                )
+            )
         checks.append(f"Missing-value ratio checked: {missing_ratio:.2%}")
 
         if profile.row_count < 30:
             score -= 0.15
-            issues.append("Small sample size detected; insights may be unstable.")
+            issues.append(
+                ValidationIssue(
+                    category="statistical_weakness",
+                    severity="high",
+                    message="Small sample size detected; insights may be unstable.",
+                )
+            )
         checks.append(f"Sample size checked: {profile.row_count} rows")
 
         if not profile.numeric_columns:
             score -= 0.10
-            issues.append("No numeric columns detected; statistical depth is limited.")
+            issues.append(
+                ValidationIssue(
+                    category="statistical_weakness",
+                    severity="medium",
+                    message="No numeric columns detected; statistical depth is limited.",
+                )
+            )
         checks.append("Feature-type coverage checked")
 
         objective_text = business_context.objective.lower()
         insights_text = " ".join(insights).lower()
         if "churn" in objective_text and "churn" not in insights_text:
             score -= 0.10
-            issues.append("Objective mentions churn but generated insights do not reference churn directly.")
+            issues.append(
+                ValidationIssue(
+                    category="objective_mismatch",
+                    severity="medium",
+                    message="Objective mentions churn but generated insights do not reference churn directly.",
+                )
+            )
         if "fraud" in objective_text and "fraud" not in insights_text and "anomal" not in insights_text:
             score -= 0.10
-            issues.append("Objective mentions fraud but insights lack fraud or anomaly-specific language.")
+            issues.append(
+                ValidationIssue(
+                    category="objective_mismatch",
+                    severity="medium",
+                    message="Objective mentions fraud but insights lack fraud or anomaly-specific language.",
+                )
+            )
         if "sales" in objective_text and "revenue" not in insights_text and "sales" not in insights_text:
             score -= 0.10
-            issues.append("Objective mentions sales but insights lack sales or revenue-specific language.")
+            issues.append(
+                ValidationIssue(
+                    category="objective_mismatch",
+                    severity="medium",
+                    message="Objective mentions sales but insights lack sales or revenue-specific language.",
+                )
+            )
+        if "churn" in objective_text and "fraud" in insights_text:
+            score -= 0.05
+            issues.append(
+                ValidationIssue(
+                    category="contradiction",
+                    severity="low",
+                    message="Insights mention fraud while objective focuses on churn.",
+                )
+            )
         checks.append("Objective alignment checked")
 
         score = max(0.10, min(0.99, score))
@@ -266,7 +312,9 @@ class PipelineOrchestrator:
         if validation_summary.issues:
             report_markdown += "\n- Noted issues:"
             for issue in validation_summary.issues:
-                report_markdown += f"\n  - {issue}"
+                report_markdown += (
+                    f"\n  - [{issue.category}/{issue.severity}] {issue.message}"
+                )
         trace.append(AgentTraceEntry(agent="ReportGenerationAgent", action="built markdown report"))
 
         return AnalyticsResult(
