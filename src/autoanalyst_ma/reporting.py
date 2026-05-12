@@ -7,6 +7,7 @@ from .models import AnalyticsResult
 
 try:
     from fpdf import FPDF  # type: ignore[import-untyped]
+    from fpdf.errors import FPDFException  # type: ignore[import-untyped]
 
     _FPDF_AVAILABLE = True
 except ModuleNotFoundError:
@@ -64,8 +65,19 @@ def markdown_to_pdf_bytes(markdown_text: str) -> bytes:
 
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
     pdf.set_margins(left=20, top=20, right=20)
+    pdf.add_page()
+    text_width = 170
+
+    def write_line(height: int, text: str) -> None:
+        pdf.set_x(pdf.l_margin)
+        safe_text = text.replace("\t", " ")
+        try:
+            pdf.multi_cell(text_width, height, safe_text)
+        except FPDFException:
+            # Fall back to a conservative printable subset if the line layout fails.
+            normalized = "".join(ch if 32 <= ord(ch) <= 126 else " " for ch in safe_text)
+            pdf.multi_cell(text_width, height, normalized[:500])
 
     for raw_line in markdown_text.splitlines():
         line = raw_line.strip()
@@ -74,17 +86,17 @@ def markdown_to_pdf_bytes(markdown_text: str) -> bytes:
             continue
         if line.startswith("# "):
             pdf.set_font("Helvetica", style="B", size=16)
-            pdf.multi_cell(0, 9, line[2:])
+            write_line(9, line[2:])
             pdf.ln(2)
         elif line.startswith("## "):
             pdf.set_font("Helvetica", style="B", size=13)
-            pdf.multi_cell(0, 8, line[3:])
+            write_line(8, line[3:])
             pdf.ln(1)
         elif line.startswith("- "):
             pdf.set_font("Helvetica", size=11)
-            pdf.multi_cell(0, 7, f"*  {line[2:]}")
+            write_line(7, f"*  {line[2:]}")
         else:
             pdf.set_font("Helvetica", size=11)
-            pdf.multi_cell(0, 7, line)
+            write_line(7, line)
 
     return bytes(pdf.output())

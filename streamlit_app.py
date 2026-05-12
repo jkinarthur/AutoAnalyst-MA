@@ -73,7 +73,7 @@ def _render_validation_dashboard(
         )
     )
     confidence_figure.update_layout(height=250, margin=dict(l=20, r=20, t=30, b=20))
-    st.plotly_chart(confidence_figure, use_container_width=True)
+    st.plotly_chart(confidence_figure, width="stretch")
 
     category_counts: dict[str, int] = {}
     for issue in issues:
@@ -135,7 +135,7 @@ def _render_saved_run_payload(payload: dict[str, Any]) -> None:
     preview = payload.get("preview")
     if isinstance(preview, list) and preview:
         st.subheader("Preview")
-        st.dataframe(pd.DataFrame(preview), use_container_width=True)
+        st.dataframe(pd.DataFrame(preview), width="stretch")
 
     report_markdown = str(payload.get("report_markdown", ""))
     if report_markdown:
@@ -205,7 +205,7 @@ with analysis_tab:
                 st.write(f"- {insight}")
 
             st.subheader("Preview")
-            st.dataframe(result.cleaned_data.head(10), use_container_width=True)
+            st.dataframe(result.cleaned_data.head(10), width="stretch")
 
             if result.business_context is not None:
                 st.subheader("Business context")
@@ -239,7 +239,7 @@ with analysis_tab:
             chart_frames = build_chart_frames(result)
             if chart_frames:
                 for _, figure in chart_frames:
-                    st.plotly_chart(figure, use_container_width=True)
+                    st.plotly_chart(figure, width="stretch")
             else:
                 st.info("No chartable columns were detected.")
 
