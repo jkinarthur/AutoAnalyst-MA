@@ -132,6 +132,15 @@ def _render_saved_run_payload(payload: dict[str, Any]) -> None:
             issues=list(validation.get("issues", [])),
         )
 
+    pipeline_summary = payload.get("pipeline_summary")
+    if isinstance(pipeline_summary, dict):
+        st.subheader("Pipeline summary")
+        for step in pipeline_summary.get("preprocessing_steps", []):
+            st.write(f"- {step}")
+        eda_summary = pipeline_summary.get("eda_summary", {})
+        if isinstance(eda_summary, dict) and eda_summary:
+            st.json(eda_summary)
+
     preview = payload.get("preview")
     if isinstance(preview, list) and preview:
         st.subheader("Preview")
@@ -234,6 +243,13 @@ with analysis_tab:
                         for issue in result.validation_summary.issues
                     ],
                 )
+
+            if result.pipeline_summary is not None:
+                st.subheader("Pipeline summary")
+                for step in result.pipeline_summary.preprocessing_steps:
+                    st.write(f"- {step}")
+                if result.pipeline_summary.eda_summary:
+                    st.json(result.pipeline_summary.eda_summary)
 
             st.subheader("Charts")
             chart_frames = build_chart_frames(result)

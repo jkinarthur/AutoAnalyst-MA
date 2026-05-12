@@ -124,5 +124,9 @@ def test_analyze_endpoint_returns_business_context(tmp_path: Path) -> None:
             assert "category" in first_issue
             assert "severity" in first_issue
             assert "message" in first_issue
+        pipeline_summary = payload["pipeline_summary"]
+        assert pipeline_summary is not None
+        assert isinstance(pipeline_summary["preprocessing_steps"], list)
+        assert "eda_summary" in pipeline_summary
     finally:
         api.run_store = original_store

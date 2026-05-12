@@ -38,6 +38,11 @@ class ValidationSummarySchema(BaseModel):
     issues: list[ValidationIssueSchema] = Field(default_factory=list)
 
 
+class PipelineSummarySchema(BaseModel):
+    preprocessing_steps: list[str] = Field(default_factory=list)
+    eda_summary: dict[str, Any] = Field(default_factory=dict)
+
+
 class AnalysisPayloadSchema(BaseModel):
     profile: ProfileSchema
     insights: list[str] = Field(default_factory=list)
@@ -46,6 +51,7 @@ class AnalysisPayloadSchema(BaseModel):
     agent_trace: list[AgentTraceSchema] = Field(default_factory=list)
     business_context: BusinessContextSchema | None = None
     validation_summary: ValidationSummarySchema | None = None
+    pipeline_summary: PipelineSummarySchema | None = None
     preview: list[dict[str, Any]] = Field(default_factory=list)
 
 

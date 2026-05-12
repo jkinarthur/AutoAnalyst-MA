@@ -8,6 +8,7 @@ from .schemas import (
     AnalysisPayloadSchema,
     AnalyzeResponseSchema,
     BusinessContextSchema,
+    PipelineSummarySchema,
     ProfileSchema,
     RunListItemSchema,
     RunListResponseSchema,
@@ -99,6 +100,13 @@ class AnalyticsBackendService:
                 ],
             )
 
+        pipeline_summary_payload = None
+        if result.pipeline_summary is not None:
+            pipeline_summary_payload = PipelineSummarySchema(
+                preprocessing_steps=result.pipeline_summary.preprocessing_steps,
+                eda_summary=result.pipeline_summary.eda_summary,
+            )
+
         return AnalysisPayloadSchema(
             profile=ProfileSchema(
                 row_count=result.profile.row_count,
@@ -120,5 +128,6 @@ class AnalyticsBackendService:
             ],
             business_context=business_context_payload,
             validation_summary=validation_payload,
+            pipeline_summary=pipeline_summary_payload,
             preview=result.cleaned_data.head(5).to_dict(orient="records"),
         )

@@ -24,6 +24,9 @@ def test_pipeline_runs_end_to_end() -> None:
     assert "# AutoAnalyst-MA Report" in result.report_markdown
     assert "## Validation Summary" in result.report_markdown
     assert result.validation_summary is not None
+    assert result.pipeline_summary is not None
+    assert result.pipeline_summary.preprocessing_steps
+    assert "row_count" in result.pipeline_summary.eda_summary
 
 
 def test_pipeline_includes_agent_trace() -> None:
@@ -41,6 +44,7 @@ def test_pipeline_includes_agent_trace() -> None:
         "DataIngestionAgent",
         "BusinessUnderstandingAgent",
         "DataCleaningAgent",
+        "PreprocessingAgent",
         "InsightGenerationAgent",
         "VisualizationAgent",
         "ValidationExplainabilityAgent",

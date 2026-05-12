@@ -10,6 +10,7 @@ from .models import (
     AnalyticsResult,
     BusinessContext,
     DatasetProfile,
+    PipelineSummary,
     ValidationIssue,
     ValidationSummary,
 )
@@ -286,6 +287,14 @@ class PipelineOrchestrator:
         cleaned_data = self.cleaning_agent.clean(data_frame)
         trace.append(AgentTraceEntry(agent="DataCleaningAgent", action="cleaned dataset"))
 
+        pipeline_summary = self._build_pipeline_summary(data_frame, cleaned_data, profile)
+        trace.append(
+            AgentTraceEntry(
+                agent="PreprocessingAgent",
+                action="prepared preprocessing and EDA summary",
+            )
+        )
+
         insights = self.insight_agent.generate_insights(cleaned_data, profile)
         trace.append(AgentTraceEntry(agent="InsightGenerationAgent", action="generated insights"))
 
@@ -326,4 +335,48 @@ class PipelineOrchestrator:
             agent_trace=trace,
             business_context=business_context,
             validation_summary=validation_summary,
+            pipeline_summary=pipeline_summary,
+        )
+
+    def _build_pipeline_summary(
+        self,
+        raw_data: pd.DataFrame,
+        cleaned_data: pd.DataFrame,
+        profile: DatasetProfile,
+    ) -> PipelineSummary:
+        raw_missing = int(raw_data.isna().sum().sum())
+        cleaned_missing = int(cleaned_data.isna().sum().sum())
+        filled_cells = max(raw_missing - cleaned_missing, 0)
+
+        preprocessing_steps = [
+            f"Removed duplicate rows: {profile.duplicate_rows}",
+            f"Filled missing cells: {filled_cells}",
+        ]
+
+        eda_summary: dict[str, Any] = {
+            "row_count": int(cleaned_data.shape[0]),
+            "column_count": int(cleaned_data.shape[1]),
+        }
+
+        numeric_columns = list(cleaned_data.select_dtypes(include="number").columns)
+        if numeric_columns:
+            numeric_profile: dict[str, dict[str, float]] = {}
+            for column in numeric_columns[:2]:
+                numeric_profile[column] = {
+                    "mean": float(cleaned_data[column].mean()),
+                    "std": float(cleaned_data[column].std(ddof=0)),
+                }
+            eda_summary["numeric_profile"] = numeric_profile
+
+        categorical_columns = list(cleaned_data.select_dtypes(exclude="number").columns)
+        if categorical_columns:
+            top_column = categorical_columns[0]
+            top_counts = cleaned_data[top_column].value_counts().head(5).to_dict()
+            eda_summary["top_category_counts"] = {
+                top_column: {str(key): int(value) for key, value in top_counts.items()}
+            }
+
+        return PipelineSummary(
+            preprocessing_steps=preprocessing_steps,
+            eda_summary=eda_summary,
         )

@@ -47,6 +47,12 @@ class ValidationSummary:
 
 
 @dataclass(slots=True)
+class PipelineSummary:
+    preprocessing_steps: list[str] = field(default_factory=list)
+    eda_summary: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
 class AnalyticsResult:
     profile: DatasetProfile
     cleaned_data: pd.DataFrame
@@ -56,3 +62,4 @@ class AnalyticsResult:
     agent_trace: list[AgentTraceEntry] = field(default_factory=list)
     business_context: BusinessContext | None = None
     validation_summary: ValidationSummary | None = None
+    pipeline_summary: PipelineSummary | None = None
