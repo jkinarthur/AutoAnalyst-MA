@@ -22,7 +22,13 @@ AutoAnalyst-MA is an open-source multi-agent analytics system that turns tabular
 
 ## Development
 
-Install dependencies with your preferred Python environment manager, then run:
+Create and activate your Python environment, then install dependencies:
+
+```bash
+pip install -e .[dev,ui,pdf]
+```
+
+Run the API:
 
 ```bash
 uvicorn autoanalyst_ma.api:app --reload
@@ -46,6 +52,33 @@ If you have not installed the UI extras yet, use:
 ```bash
 pip install -e .[ui]
 ```
+
+## Testing
+
+Run the full test suite:
+
+```bash
+pytest
+```
+
+Current tests cover:
+
+- pipeline orchestration and stage traces
+- API routes including report export formats
+- persistence layer behavior
+- backend service contract behavior
+- UI helper behavior for analysis and saved runs
+
+## Backend Package Overview
+
+Key backend modules:
+
+- `src/autoanalyst_ma/api.py`: FastAPI route layer
+- `src/autoanalyst_ma/service.py`: backend service orchestration and serialization
+- `src/autoanalyst_ma/schemas.py`: typed API request/response models
+- `src/autoanalyst_ma/pipeline.py`: core analytics pipeline implementation
+- `src/autoanalyst_ma/agents.py`: multi-agent orchestration and stage agents
+- `src/autoanalyst_ma/storage.py`: SQLite run persistence
 
 ## Notes
 
