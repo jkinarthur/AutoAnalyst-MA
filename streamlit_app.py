@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
+from autoanalyst_ma.reporting import markdown_to_html, markdown_to_pdf_bytes
 from autoanalyst_ma.ui import build_chart_frames, run_analysis_from_upload
 
 
@@ -47,6 +48,35 @@ else:
 
         st.subheader("Report draft")
         st.text_area("Markdown report", value=result.report_markdown, height=320)
+
+        download_left, download_mid, download_right = st.columns(3)
+        markdown_bytes = result.report_markdown.encode("utf-8")
+        html_bytes = markdown_to_html(result.report_markdown).encode("utf-8")
+        pdf_bytes = markdown_to_pdf_bytes(result.report_markdown)
+
+        with download_left:
+            st.download_button(
+                "Download Markdown",
+                data=markdown_bytes,
+                file_name="autoanalyst_report.md",
+                mime="text/markdown",
+            )
+
+        with download_mid:
+            st.download_button(
+                "Download HTML",
+                data=html_bytes,
+                file_name="autoanalyst_report.html",
+                mime="text/html",
+            )
+
+        with download_right:
+            st.download_button(
+                "Download PDF",
+                data=pdf_bytes,
+                file_name="autoanalyst_report.pdf",
+                mime="application/pdf",
+            )
 
         st.subheader("Agent trace")
         for step in result.agent_trace:
