@@ -89,5 +89,10 @@ def test_api_report_export_endpoints(tmp_path: Path) -> None:
 
         missing_response = client.get("/runs/nonexistent/report")
         assert missing_response.status_code == 404
+
+        pdf_response = client.get(f"/runs/{created.run_id}/report?format=pdf")
+        assert pdf_response.status_code == 200
+        assert pdf_response.headers["content-type"] == "application/pdf"
+        assert pdf_response.content[:4] == b"%PDF"
     finally:
         api.run_store = original_store

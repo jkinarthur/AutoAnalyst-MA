@@ -5,10 +5,10 @@ from tempfile import NamedTemporaryFile
 from typing import Literal
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 
 from .pipeline import AnalyticsPipeline
-from .reporting import markdown_to_html
+from .reporting import markdown_to_html, markdown_to_pdf_bytes
 from .storage import AnalysisRunStore
 
 app = FastAPI(title="AutoAnalyst-MA", version="0.1.0")
@@ -92,7 +92,7 @@ def get_run(run_id: str) -> dict:
 @app.get("/runs/{run_id}/report")
 def export_run_report(
     run_id: str,
-    format: Literal["md", "html"] = Query(default="md"),
+    format: Literal["md", "html", "pdf"] = Query(default="md"),
 ):
     record = run_store.get_run(run_id)
     if record is None:
@@ -108,6 +108,16 @@ def export_run_report(
             content=html_report,
             headers={
                 "Content-Disposition": f'attachment; filename="{run_id}.html"',
+            },
+        )
+
+    if format == "pdf":
+        pdf_bytes = markdown_to_pdf_bytes(markdown_report)
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{run_id}.pdf"',
             },
         )
 

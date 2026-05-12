@@ -25,6 +25,9 @@ dev = [
 ui = [
   "streamlit>=1.33",
 ]
+pdf = [
+  "fpdf2>=2.7",
+]
 
 [tool.setuptools]
 package-dir = {"" = "src"}
