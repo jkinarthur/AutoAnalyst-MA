@@ -20,7 +20,7 @@ def _sample_payload() -> dict:
         },
         "insights": ["Sample insight"],
         "charts": {},
-        "report_markdown": "# Report",
+        "report_markdown": "# Report\n\n- Sample insight",
         "agent_trace": [],
         "preview": [{"value": 1, "group": "A"}],
     }
@@ -63,6 +63,31 @@ def test_api_run_endpoints_return_saved_runs(tmp_path: Path) -> None:
         assert payload["filename"] == "api.csv"
 
         missing_response = client.get("/runs/nonexistent")
+        assert missing_response.status_code == 404
+    finally:
+        api.run_store = original_store
+
+
+def test_api_report_export_endpoints(tmp_path: Path) -> None:
+    isolated_store = AnalysisRunStore(tmp_path / "api_report_runs.db")
+    created = isolated_store.save_run("report.csv", _sample_payload())
+
+    original_store = api.run_store
+    api.run_store = isolated_store
+    try:
+        client = TestClient(api.app)
+
+        markdown_response = client.get(f"/runs/{created.run_id}/report")
+        assert markdown_response.status_code == 200
+        assert markdown_response.headers["content-type"].startswith("text/markdown")
+        assert "# Report" in markdown_response.text
+
+        html_response = client.get(f"/runs/{created.run_id}/report?format=html")
+        assert html_response.status_code == 200
+        assert html_response.headers["content-type"].startswith("text/html")
+        assert "<h1>Report</h1>" in html_response.text
+
+        missing_response = client.get("/runs/nonexistent/report")
         assert missing_response.status_code == 404
     finally:
         api.run_store = original_store

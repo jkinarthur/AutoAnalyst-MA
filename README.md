@@ -32,6 +32,7 @@ Core API endpoints:
 - `POST /analyze` runs analysis and stores the result in SQLite.
 - `GET /runs` lists recent analysis runs.
 - `GET /runs/{run_id}` returns a stored run payload.
+- `GET /runs/{run_id}/report` exports a stored report as markdown (`?format=md`) or HTML (`?format=html`).
 
 To launch the Streamlit UI for CSV upload and analysis:
 

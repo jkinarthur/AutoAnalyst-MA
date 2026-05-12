@@ -2,10 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import Literal
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi.responses import HTMLResponse, PlainTextResponse
 
 from .pipeline import AnalyticsPipeline
+from .reporting import markdown_to_html
 from .storage import AnalysisRunStore
 
 app = FastAPI(title="AutoAnalyst-MA", version="0.1.0")
@@ -84,3 +87,34 @@ def get_run(run_id: str) -> dict:
         "filename": record.filename,
         **record.payload,
     }
+
+
+@app.get("/runs/{run_id}/report")
+def export_run_report(
+    run_id: str,
+    format: Literal["md", "html"] = Query(default="md"),
+):
+    record = run_store.get_run(run_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Run not found")
+
+    markdown_report = record.payload.get("report_markdown")
+    if not isinstance(markdown_report, str) or not markdown_report.strip():
+        raise HTTPException(status_code=404, detail="Report content not found")
+
+    if format == "html":
+        html_report = markdown_to_html(markdown_report)
+        return HTMLResponse(
+            content=html_report,
+            headers={
+                "Content-Disposition": f'attachment; filename="{run_id}.html"',
+            },
+        )
+
+    return PlainTextResponse(
+        content=markdown_report,
+        media_type="text/markdown",
+        headers={
+            "Content-Disposition": f'attachment; filename="{run_id}.md"',
+        },
+    )
