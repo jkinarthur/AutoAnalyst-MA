@@ -18,9 +18,16 @@ class DatasetProfile:
 
 
 @dataclass(slots=True)
+class AgentTraceEntry:
+    agent: str
+    action: str
+
+
+@dataclass(slots=True)
 class AnalyticsResult:
     profile: DatasetProfile
     cleaned_data: pd.DataFrame
     insights: list[str]
     charts: dict[str, dict[str, Any]] = field(default_factory=dict)
     report_markdown: str = ""
+    agent_trace: list[AgentTraceEntry] = field(default_factory=list)

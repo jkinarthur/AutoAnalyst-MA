@@ -37,6 +37,10 @@ async def analyze(file: UploadFile = File(...)) -> dict:
             "insights": result.insights,
             "charts": result.charts,
             "report_markdown": result.report_markdown,
+            "agent_trace": [
+                {"agent": entry.agent, "action": entry.action}
+                for entry in result.agent_trace
+            ],
             "preview": result.cleaned_data.head(5).to_dict(orient="records"),
         }
     finally:

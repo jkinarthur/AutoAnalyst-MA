@@ -6,6 +6,14 @@ from typing import Any
 
 import pandas as pd
 
+from .agents import (
+    DefaultCleaningAgent,
+    DefaultInsightAgent,
+    DefaultProfileAgent,
+    DefaultReportAgent,
+    DefaultVisualizationAgent,
+    PipelineOrchestrator,
+)
 from .models import AnalyticsResult, DatasetProfile
 
 
@@ -17,26 +25,22 @@ class PipelineConfig:
 class AnalyticsPipeline:
     def __init__(self, config: PipelineConfig | None = None) -> None:
         self.config = config or PipelineConfig()
+        self.orchestrator = PipelineOrchestrator(
+            profile_agent=DefaultProfileAgent(self),
+            cleaning_agent=DefaultCleaningAgent(self),
+            insight_agent=DefaultInsightAgent(self),
+            visualization_agent=DefaultVisualizationAgent(self),
+            report_agent=DefaultReportAgent(self),
+        )
 
     def run_from_csv(self, file_path: str | Path) -> AnalyticsResult:
         data_frame = pd.read_csv(file_path)
         return self.run(data_frame)
 
     def run(self, data_frame: pd.DataFrame) -> AnalyticsResult:
-        profile = self._profile(data_frame)
-        cleaned_data = self._clean(data_frame)
-        insights = self._generate_insights(cleaned_data, profile)
-        charts = self._build_chart_specs(cleaned_data)
-        report_markdown = self._build_report(profile, insights, charts)
-        return AnalyticsResult(
-            profile=profile,
-            cleaned_data=cleaned_data,
-            insights=insights,
-            charts=charts,
-            report_markdown=report_markdown,
-        )
+        return self.orchestrator.run(data_frame)
 
-    def _profile(self, data_frame: pd.DataFrame) -> DatasetProfile:
+    def profile(self, data_frame: pd.DataFrame) -> DatasetProfile:
         missing_values = int(data_frame.isna().sum().sum())
         duplicate_rows = int(data_frame.duplicated().sum())
         numeric_columns = list(data_frame.select_dtypes(include="number").columns)
@@ -55,7 +59,7 @@ class AnalyticsPipeline:
             summary=summary,
         )
 
-    def _clean(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+    def clean(self, data_frame: pd.DataFrame) -> pd.DataFrame:
         cleaned = data_frame.copy()
         cleaned = cleaned.drop_duplicates().reset_index(drop=True)
         numeric_columns = list(cleaned.select_dtypes(include="number").columns)
@@ -70,7 +74,7 @@ class AnalyticsPipeline:
                 cleaned[column] = cleaned[column].fillna(fill_value)
         return cleaned
 
-    def _generate_insights(self, cleaned_data: pd.DataFrame, profile: DatasetProfile) -> list[str]:
+    def generate_insights(self, cleaned_data: pd.DataFrame, profile: DatasetProfile) -> list[str]:
         insights: list[str] = []
         insights.append(
             f"The dataset contains {profile.row_count} rows and {profile.column_count} columns."
@@ -94,7 +98,7 @@ class AnalyticsPipeline:
             insights.append("The dataset is ready for deeper domain-specific analysis.")
         return insights[: self.config.max_insight_columns]
 
-    def _build_chart_specs(self, cleaned_data: pd.DataFrame) -> dict[str, dict[str, Any]]:
+    def build_chart_specs(self, cleaned_data: pd.DataFrame) -> dict[str, dict[str, Any]]:
         charts: dict[str, dict[str, Any]] = {}
         numeric_columns = list(cleaned_data.select_dtypes(include="number").columns)
         if numeric_columns:
@@ -111,7 +115,7 @@ class AnalyticsPipeline:
             }
         return charts
 
-    def _build_report(
+    def build_report(
         self,
         profile: DatasetProfile,
         insights: list[str],

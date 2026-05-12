@@ -47,3 +47,7 @@ else:
 
         st.subheader("Report draft")
         st.text_area("Markdown report", value=result.report_markdown, height=320)
+
+        st.subheader("Agent trace")
+        for step in result.agent_trace:
+            st.write(f"- {step.agent}: {step.action}")

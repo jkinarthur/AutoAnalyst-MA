@@ -22,3 +22,23 @@ def test_pipeline_runs_end_to_end() -> None:
     assert result.cleaned_data.shape == (3, 3)
     assert result.insights
     assert "# AutoAnalyst-MA Report" in result.report_markdown
+
+
+def test_pipeline_includes_agent_trace() -> None:
+    data_frame = pd.DataFrame(
+        {
+            "value": [1, 2, 2, 3],
+            "category": ["A", "B", "B", "A"],
+        }
+    )
+
+    result = AnalyticsPipeline().run(data_frame)
+
+    agent_names = [entry.agent for entry in result.agent_trace]
+    assert agent_names == [
+        "DataIngestionAgent",
+        "DataCleaningAgent",
+        "InsightGenerationAgent",
+        "VisualizationAgent",
+        "ReportGenerationAgent",
+    ]

@@ -15,6 +15,7 @@ AutoAnalyst-MA is an open-source multi-agent analytics system that turns tabular
 
 - `src/autoanalyst_ma/` - application package
 - `src/autoanalyst_ma/api.py` - FastAPI application
+- `src/autoanalyst_ma/agents.py` - multi-agent orchestration skeleton
 - `src/autoanalyst_ma/pipeline.py` - analytics pipeline
 - `tests/` - automated tests
 
@@ -40,4 +41,5 @@ pip install -e .[ui]
 
 ## Notes
 
-This repository starts with the MVP backend and data pipeline. The multi-agent orchestration layer will be expanded incrementally from here.
+This repository starts with the MVP backend and data pipeline.
+The current implementation includes a coordinator and stage agents for profile, cleaning, insights, visualization, and reporting, plus an execution trace exposed by the API/UI for explainability.
