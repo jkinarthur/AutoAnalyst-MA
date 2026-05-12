@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import streamlit as st
+import plotly.graph_objects as go
 
 from autoanalyst_ma.reporting import markdown_to_html, markdown_to_pdf_bytes
 from autoanalyst_ma.ui import build_chart_frames, run_analysis_from_upload
@@ -57,6 +58,36 @@ else:
             st.write(
                 f"Confidence: {result.validation_summary.confidence_score:.2f} ({result.validation_summary.confidence_level})"
             )
+
+            confidence_figure = go.Figure(
+                go.Indicator(
+                    mode="gauge+number",
+                    value=result.validation_summary.confidence_score * 100,
+                    title={"text": "Confidence"},
+                    gauge={
+                        "axis": {"range": [0, 100]},
+                        "bar": {"color": "#2E86C1"},
+                        "steps": [
+                            {"range": [0, 60], "color": "#F8D7DA"},
+                            {"range": [60, 80], "color": "#FFF3CD"},
+                            {"range": [80, 100], "color": "#D4EDDA"},
+                        ],
+                    },
+                )
+            )
+            confidence_figure.update_layout(height=250, margin=dict(l=20, r=20, t=30, b=20))
+            st.plotly_chart(confidence_figure, use_container_width=True)
+
+            category_counts: dict[str, int] = {}
+            for issue in result.validation_summary.issues:
+                category_counts[issue.category] = category_counts.get(issue.category, 0) + 1
+
+            if category_counts:
+                count_columns = st.columns(len(category_counts))
+                for index, (category, count) in enumerate(sorted(category_counts.items())):
+                    with count_columns[index]:
+                        st.metric(f"{category} warnings", count)
+
             if result.validation_summary.checks:
                 st.write("Checks")
                 for check in result.validation_summary.checks:
