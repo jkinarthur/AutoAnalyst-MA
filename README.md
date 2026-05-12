@@ -27,6 +27,12 @@ Install dependencies with your preferred Python environment manager, then run:
 uvicorn autoanalyst_ma.api:app --reload
 ```
 
+Core API endpoints:
+
+- `POST /analyze` runs analysis and stores the result in SQLite.
+- `GET /runs` lists recent analysis runs.
+- `GET /runs/{run_id}` returns a stored run payload.
+
 To launch the Streamlit UI for CSV upload and analysis:
 
 ```bash
