@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from io import StringIO
+from pathlib import Path
+from typing import Any
 
 import pandas as pd
 import plotly.express as px
 
 from .models import AnalyticsResult
 from .pipeline import AnalyticsPipeline
+from .storage import AnalysisRunStore
 
 
 def run_analysis_from_upload(
@@ -42,3 +45,29 @@ def build_chart_frames(result: AnalyticsResult) -> list[tuple[str, object]]:
         charts.append((column, figure))
 
     return charts
+
+
+def list_saved_runs(limit: int = 50, database_path: str | Path = Path("data") / "analysis_runs.db") -> list[dict[str, str]]:
+    store = AnalysisRunStore(database_path)
+    records = store.list_runs(limit=limit)
+    return [
+        {
+            "run_id": record.run_id,
+            "created_at": record.created_at,
+            "filename": record.filename,
+        }
+        for record in records
+    ]
+
+
+def load_saved_run(run_id: str, database_path: str | Path = Path("data") / "analysis_runs.db") -> dict[str, Any] | None:
+    store = AnalysisRunStore(database_path)
+    record = store.get_run(run_id)
+    if record is None:
+        return None
+    return {
+        "run_id": record.run_id,
+        "created_at": record.created_at,
+        "filename": record.filename,
+        **record.payload,
+    }
