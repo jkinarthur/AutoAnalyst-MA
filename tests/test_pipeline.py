@@ -37,8 +37,25 @@ def test_pipeline_includes_agent_trace() -> None:
     agent_names = [entry.agent for entry in result.agent_trace]
     assert agent_names == [
         "DataIngestionAgent",
+        "BusinessUnderstandingAgent",
         "DataCleaningAgent",
         "InsightGenerationAgent",
         "VisualizationAgent",
         "ReportGenerationAgent",
     ]
+
+
+def test_pipeline_maps_business_goal_to_context() -> None:
+    data_frame = pd.DataFrame(
+        {
+            "customer_id": [1, 2, 3],
+            "monthly_spend": [120.0, 75.0, 95.0],
+            "status": ["active", "at_risk", "active"],
+        }
+    )
+
+    result = AnalyticsPipeline().run(data_frame, business_goal="Analyze churn risk")
+
+    assert result.business_context is not None
+    assert "churn_rate" in result.business_context.recommended_kpis
+    assert "classification" in result.business_context.recommended_analyses

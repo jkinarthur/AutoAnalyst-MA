@@ -5,7 +5,7 @@ from typing import Any, Protocol
 
 import pandas as pd
 
-from .models import AgentTraceEntry, AnalyticsResult, DatasetProfile
+from .models import AgentTraceEntry, AnalyticsResult, BusinessContext, DatasetProfile
 
 
 class ProfileAgent(Protocol):
@@ -15,6 +15,15 @@ class ProfileAgent(Protocol):
 
 class CleaningAgent(Protocol):
     def clean(self, data_frame: pd.DataFrame) -> pd.DataFrame:
+        ...
+
+
+class BusinessUnderstandingAgent(Protocol):
+    def derive_business_context(
+        self,
+        objective: str | None,
+        profile: DatasetProfile,
+    ) -> BusinessContext:
         ...
 
 
@@ -59,6 +68,43 @@ class DefaultCleaningAgent:
 
 
 @dataclass(slots=True)
+class DefaultBusinessUnderstandingAgent:
+    def derive_business_context(
+        self,
+        objective: str | None,
+        profile: DatasetProfile,
+    ) -> BusinessContext:
+        normalized = (objective or "general performance overview").strip().lower()
+        if "churn" in normalized:
+            return BusinessContext(
+                objective=objective or "Analyze customer churn risk",
+                recommended_kpis=["churn_rate", "retention_rate", "customer_lifetime_value"],
+                recommended_analyses=["cohort_analysis", "classification", "feature_importance"],
+            )
+        if "fraud" in normalized or "suspicious" in normalized:
+            return BusinessContext(
+                objective=objective or "Detect suspicious transactions",
+                recommended_kpis=["fraud_rate", "false_positive_rate", "investigation_volume"],
+                recommended_analyses=["anomaly_detection", "classification", "time_series_spike_detection"],
+            )
+        if "sales" in normalized or "revenue" in normalized:
+            return BusinessContext(
+                objective=objective or "Analyze sales performance",
+                recommended_kpis=["revenue", "average_order_value", "conversion_rate"],
+                recommended_analyses=["trend_analysis", "segmentation", "forecasting"],
+            )
+
+        fallback_kpis = ["row_count", "missing_value_rate"]
+        if profile.numeric_columns:
+            fallback_kpis.append(f"mean_{profile.numeric_columns[0]}")
+        return BusinessContext(
+            objective=objective or "General data health and performance overview",
+            recommended_kpis=fallback_kpis,
+            recommended_analyses=["descriptive_statistics", "distribution_analysis"],
+        )
+
+
+@dataclass(slots=True)
 class DefaultInsightAgent:
     pipeline: Any
 
@@ -95,15 +141,24 @@ class DefaultReportAgent:
 class PipelineOrchestrator:
     profile_agent: ProfileAgent
     cleaning_agent: CleaningAgent
+    business_understanding_agent: BusinessUnderstandingAgent
     insight_agent: InsightAgent
     visualization_agent: VisualizationAgent
     report_agent: ReportAgent
 
-    def run(self, data_frame: pd.DataFrame) -> AnalyticsResult:
+    def run(self, data_frame: pd.DataFrame, objective: str | None = None) -> AnalyticsResult:
         trace: list[AgentTraceEntry] = []
 
         profile = self.profile_agent.profile(data_frame)
         trace.append(AgentTraceEntry(agent="DataIngestionAgent", action="profiled dataset"))
+
+        business_context = self.business_understanding_agent.derive_business_context(objective, profile)
+        trace.append(
+            AgentTraceEntry(
+                agent="BusinessUnderstandingAgent",
+                action="mapped business objective to KPIs and analyses",
+            )
+        )
 
         cleaned_data = self.cleaning_agent.clean(data_frame)
         trace.append(AgentTraceEntry(agent="DataCleaningAgent", action="cleaned dataset"))
@@ -124,4 +179,5 @@ class PipelineOrchestrator:
             charts=charts,
             report_markdown=report_markdown,
             agent_trace=trace,
+            business_context=business_context,
         )

@@ -10,6 +10,10 @@ st.set_page_config(page_title="AutoAnalyst-MA", layout="wide")
 
 st.title("AutoAnalyst-MA")
 st.caption("Upload a CSV file to generate a profile, insights, and a report draft.")
+business_goal = st.text_input(
+    "Business objective (optional)",
+    placeholder="Example: Analyze customer churn risk",
+)
 
 uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"])
 
@@ -17,7 +21,7 @@ if uploaded_file is None:
     st.info("Upload a CSV file to begin.")
 else:
     try:
-        data_frame, result = run_analysis_from_upload(uploaded_file)
+        data_frame, result = run_analysis_from_upload(uploaded_file, business_goal=business_goal)
     except Exception as exc:  # pragma: no cover - UI safety net
         st.error(f"Could not analyze file: {exc}")
     else:
@@ -37,6 +41,16 @@ else:
 
         st.subheader("Preview")
         st.dataframe(result.cleaned_data.head(10), use_container_width=True)
+
+        if result.business_context is not None:
+            st.subheader("Business context")
+            st.write(f"Objective: {result.business_context.objective}")
+            st.write("Suggested KPIs")
+            for kpi in result.business_context.recommended_kpis:
+                st.write(f"- {kpi}")
+            st.write("Suggested analyses")
+            for analysis_name in result.business_context.recommended_analyses:
+                st.write(f"- {analysis_name}")
 
         st.subheader("Charts")
         chart_frames = build_chart_frames(result)

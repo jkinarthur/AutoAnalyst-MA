@@ -96,3 +96,24 @@ def test_api_report_export_endpoints(tmp_path: Path) -> None:
         assert pdf_response.content[:4] == b"%PDF"
     finally:
         api.run_store = original_store
+
+
+def test_analyze_endpoint_returns_business_context(tmp_path: Path) -> None:
+    isolated_store = AnalysisRunStore(tmp_path / "api_analyze_runs.db")
+    original_store = api.run_store
+    api.run_store = isolated_store
+    try:
+        client = TestClient(api.app)
+        csv_data = "customer_id,amount,status\n1,100,active\n2,80,at_risk\n"
+        response = client.post(
+            "/analyze",
+            files={"file": ("sample.csv", csv_data, "text/csv")},
+            data={"business_goal": "Analyze churn risk"},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        business_context = payload["business_context"]
+        assert business_context["objective"] == "Analyze churn risk"
+        assert "churn_rate" in business_context["recommended_kpis"]
+    finally:
+        api.run_store = original_store

@@ -4,7 +4,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Literal
 
-from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Query, UploadFile
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 
 from .pipeline import AnalyticsPipeline
@@ -17,6 +17,14 @@ run_store = AnalysisRunStore(Path("data") / "analysis_runs.db")
 
 
 def _to_payload(result) -> dict:
+    business_context_payload = None
+    if result.business_context is not None:
+        business_context_payload = {
+            "objective": result.business_context.objective,
+            "recommended_kpis": result.business_context.recommended_kpis,
+            "recommended_analyses": result.business_context.recommended_analyses,
+        }
+
     return {
         "profile": {
             "row_count": result.profile.row_count,
@@ -33,6 +41,7 @@ def _to_payload(result) -> dict:
             {"agent": entry.agent, "action": entry.action}
             for entry in result.agent_trace
         ],
+        "business_context": business_context_payload,
         "preview": result.cleaned_data.head(5).to_dict(orient="records"),
     }
 
@@ -43,13 +52,16 @@ def health() -> dict[str, str]:
 
 
 @app.post("/analyze")
-async def analyze(file: UploadFile = File(...)) -> dict:
+async def analyze(
+    file: UploadFile = File(...),
+    business_goal: str | None = Form(default=None),
+) -> dict:
     suffix = Path(file.filename or "dataset.csv").suffix or ".csv"
     with NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
         temporary_file.write(await file.read())
         temporary_path = Path(temporary_file.name)
     try:
-        result = pipeline.run_from_csv(temporary_path)
+        result = pipeline.run_from_csv(temporary_path, business_goal=business_goal)
         payload = _to_payload(result)
         run_record = run_store.save_run(file.filename or "dataset.csv", payload)
         return {

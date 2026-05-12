@@ -9,9 +9,12 @@ from .models import AnalyticsResult
 from .pipeline import AnalyticsPipeline
 
 
-def run_analysis_from_upload(uploaded_file) -> tuple[pd.DataFrame, AnalyticsResult]:
+def run_analysis_from_upload(
+    uploaded_file,
+    business_goal: str | None = None,
+) -> tuple[pd.DataFrame, AnalyticsResult]:
     data_frame = pd.read_csv(uploaded_file)
-    result = AnalyticsPipeline().run(data_frame)
+    result = AnalyticsPipeline().run(data_frame, business_goal=business_goal)
     return data_frame, result
 
 

@@ -24,6 +24,13 @@ class AgentTraceEntry:
 
 
 @dataclass(slots=True)
+class BusinessContext:
+    objective: str
+    recommended_kpis: list[str] = field(default_factory=list)
+    recommended_analyses: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
 class AnalyticsResult:
     profile: DatasetProfile
     cleaned_data: pd.DataFrame
@@ -31,3 +38,4 @@ class AnalyticsResult:
     charts: dict[str, dict[str, Any]] = field(default_factory=dict)
     report_markdown: str = ""
     agent_trace: list[AgentTraceEntry] = field(default_factory=list)
+    business_context: BusinessContext | None = None

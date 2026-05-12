@@ -7,6 +7,7 @@ from typing import Any
 import pandas as pd
 
 from .agents import (
+    DefaultBusinessUnderstandingAgent,
     DefaultCleaningAgent,
     DefaultInsightAgent,
     DefaultProfileAgent,
@@ -28,17 +29,18 @@ class AnalyticsPipeline:
         self.orchestrator = PipelineOrchestrator(
             profile_agent=DefaultProfileAgent(self),
             cleaning_agent=DefaultCleaningAgent(self),
+            business_understanding_agent=DefaultBusinessUnderstandingAgent(),
             insight_agent=DefaultInsightAgent(self),
             visualization_agent=DefaultVisualizationAgent(self),
             report_agent=DefaultReportAgent(self),
         )
 
-    def run_from_csv(self, file_path: str | Path) -> AnalyticsResult:
+    def run_from_csv(self, file_path: str | Path, business_goal: str | None = None) -> AnalyticsResult:
         data_frame = pd.read_csv(file_path)
-        return self.run(data_frame)
+        return self.run(data_frame, business_goal=business_goal)
 
-    def run(self, data_frame: pd.DataFrame) -> AnalyticsResult:
-        return self.orchestrator.run(data_frame)
+    def run(self, data_frame: pd.DataFrame, business_goal: str | None = None) -> AnalyticsResult:
+        return self.orchestrator.run(data_frame, objective=business_goal)
 
     def profile(self, data_frame: pd.DataFrame) -> DatasetProfile:
         missing_values = int(data_frame.isna().sum().sum())
