@@ -9,6 +9,7 @@ AutoAnalyst-MA is an open-source multi-agent analytics system that turns tabular
 - Clean common data issues
 - Run exploratory data analysis
 - Generate charts and insights
+- Compute confidence and validation checks
 - Export a Markdown report
 
 ## Project structure
@@ -29,7 +30,7 @@ uvicorn autoanalyst_ma.api:app --reload
 
 Core API endpoints:
 
-- `POST /analyze` runs analysis and stores the result in SQLite. You can pass an optional `business_goal` form field.
+- `POST /analyze` runs analysis and stores the result in SQLite. You can pass an optional `business_goal` form field. The response includes `business_context` and `validation_summary`.
 - `GET /runs` lists recent analysis runs.
 - `GET /runs/{run_id}` returns a stored run payload.
 - `GET /runs/{run_id}/report` exports a stored report as markdown (`?format=md`), HTML (`?format=html`), or PDF (`?format=pdf`).
